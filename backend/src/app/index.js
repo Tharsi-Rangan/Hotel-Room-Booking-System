@@ -50,7 +50,15 @@ if (process.env.APP_NODE_ENV !== 'production') {
 }
 
 // secure HTTP headers setting middleware
-app.use(helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }));
+// CORP stays `cross-origin` because the frontend and admin panel load images from this server.
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: { 'frame-ancestors': ["'none'"] }
+  },
+  frameguard: { action: 'deny' },
+  hsts: { maxAge: 31536000, includeSubDomains: true }, // 1 year, in seconds
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 
 // allow cross-origin resource sharing
 app.use(crossOrigin(corsOptions));

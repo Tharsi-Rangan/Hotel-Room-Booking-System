@@ -29,7 +29,7 @@ exports.isAuthenticatedUser = async (req, res, next) => {
     const token = authorization.split(' ')[1];
 
     // verify token
-    jwt.verify(token, process.env.JWT_SECRET_KEY, async (err, dec) => {
+    jwt.verify(token, process.env.JWT_SECRET_KEY, { algorithms: ['HS256'] }, async (err, dec) => {
       if (err) {
         return res.status(404).json(errorResponse(
           11,
@@ -88,7 +88,7 @@ exports.isRefreshTokenValid = async (req, res, next) => {
     const token = authorization.split(' ')[1];
 
     // verify token
-    jwt.verify(token, process.env.JWT_REFRESH_TOKEN_SECRET_KEY, async (err, dec) => {
+    jwt.verify(token, process.env.JWT_REFRESH_TOKEN_SECRET_KEY, { algorithms: ['HS256'] }, async (err, dec) => {
       if (err) {
         return res.status(404).json(errorResponse(
           11,

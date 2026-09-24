@@ -105,6 +105,7 @@ usersSchema.pre('save', async function (next) {
 // JWT Access Token
 usersSchema.methods.getJWTToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET_KEY, {
+    algorithm: 'HS256',
     expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES
   });
 };
@@ -112,6 +113,7 @@ usersSchema.methods.getJWTToken = function () {
 // JWT Refresh Token
 usersSchema.methods.getJWTRefreshToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_REFRESH_TOKEN_SECRET_KEY, {
+    algorithm: 'HS256',
     expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRES
   });
 };

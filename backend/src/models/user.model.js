@@ -71,6 +71,10 @@ const usersSchema = new mongoose.Schema({
     enum: ['register', 'login', 'logout', 'blocked'],
     default: 'register'
   },
+  tokenVersion: {
+    type: Number,
+    default: 0
+  },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
   emailVerificationToken: String,
@@ -104,18 +108,32 @@ usersSchema.pre('save', async function (next) {
 
 // JWT Access Token
 usersSchema.methods.getJWTToken = function () {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET_KEY, {
-    algorithm: 'HS256',
-    expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES
-  });
+  return jwt.sign(
+    {
+      id: this._id,
+      tokenVersion: this.tokenVersion
+    },
+    process.env.JWT_SECRET_KEY,
+    {
+      algorithm: 'HS256',
+      expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES
+    }
+  );
 };
 
 // JWT Refresh Token
 usersSchema.methods.getJWTRefreshToken = function () {
-  return jwt.sign({ id: this._id }, process.env.JWT_REFRESH_TOKEN_SECRET_KEY, {
-    algorithm: 'HS256',
-    expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRES
-  });
+  return jwt.sign(
+    {
+      id: this._id,
+      tokenVersion: this.tokenVersion
+    },
+    process.env.JWT_REFRESH_TOKEN_SECRET_KEY,
+    {
+      algorithm: 'HS256',
+      expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRES
+    }
+  );
 };
 
 // compare password

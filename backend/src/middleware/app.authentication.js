@@ -49,6 +49,15 @@ exports.isAuthenticatedUser = async (req, res, next) => {
         ));
       }
 
+      // check if token has been invalidated
+      if (dec.tokenVersion !== user.tokenVersion) {
+        return res.status(401).json(errorResponse(
+          1,
+          'FAILED',
+          'Session has been invalidated. Please login again'
+        ));
+      }
+
       // check if user is logged in
       if (user.status === 'login') {
         req.user = user;
@@ -105,6 +114,15 @@ exports.isRefreshTokenValid = async (req, res, next) => {
           4,
           'UNKNOWN ACCESS',
           'Authorization headers is missing/invalid'
+        ));
+      }
+
+      // check if refresh token has been invalidated
+      if (dec.tokenVersion !== user.tokenVersion) {
+        return res.status(401).json(errorResponse(
+          1,
+          'FAILED',
+          'Session has been invalidated. Please login again'
         ));
       }
 

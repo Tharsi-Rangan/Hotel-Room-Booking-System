@@ -42,5 +42,8 @@
     "eslint-plugin-react": "^7.31.11",
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^2.8.1"
+  },
+  "overrides": {
+    "postcss": "^8.5.23"
   }
 }

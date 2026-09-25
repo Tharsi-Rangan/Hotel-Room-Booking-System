@@ -372,8 +372,9 @@ exports.changePassword = async (req, res) => {
         ));
       }
 
-      // change user password in database
+      // change user password and invalidate existing sessions
       user.password = req.body.newPassword;
+      user.tokenVersion += 1;
       await user.save();
 
       res.status(200).json(successResponse(

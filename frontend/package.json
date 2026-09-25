@@ -15,7 +15,7 @@
     "antd-img-crop": "^4.12.2",
     "axios": "^1.2.1",
     "dayjs": "^1.11.7",
-    "next": "13.0.6",
+    "next": "15.5.26",
     "next-connect": "^0.13.0",
     "next-seo": "^5.15.0",
     "prop-types": "^15.8.1",

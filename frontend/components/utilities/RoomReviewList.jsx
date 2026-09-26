@@ -106,7 +106,7 @@ function RoomReviewList({ roomId }) {
                     />
                   )}
                   title={item?.reviews_by?.fullName || 'N/A'}
-                  description={item?.message}
+                 description={<span>{item?.message}</span>}
                 />
                 <div>
                   <Rate value={item?.rating} disabled />

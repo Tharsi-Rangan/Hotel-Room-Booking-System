@@ -16,6 +16,10 @@ const appRoot = require('app-root-path');
 const bodyParser = require('body-parser');
 const helmet = require('helmet');
 const env = require('dotenv');
+const session = require('express-session');
+
+// load environment variables from .env file
+env.config();
 
 // imports application middleware and routes
 const morganLogger = require('../middleware/morgan.logger');
@@ -30,8 +34,8 @@ const roomRoute = require('../routes/room.routes');
 const bookingRoute = require('../routes/booking.route');
 const reviewRoute = require('../routes/review.routes');
 
-// load environment variables from .env file
-env.config();
+// load passport after environment variables are available
+const passport = require('../configs/passport');
 
 // initialize express app
 const app = express();
@@ -56,7 +60,7 @@ app.use(helmet({
     directives: { 'frame-ancestors': ["'none'"] }
   },
   frameguard: { action: 'deny' },
-  hsts: { maxAge: 31536000, includeSubDomains: true }, // 1 year, in seconds
+  hsts: { maxAge: 31536000, includeSubDomains: true },
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
@@ -65,6 +69,21 @@ app.use(crossOrigin(corsOptions));
 
 // parse cookies from request
 app.use(cookieParser());
+
+// OAuth session used for state and PKCE verification
+app.use(session({
+  secret: process.env.OAUTH_SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax'
+  }
+}));
+
+// initialize passport
+app.use(passport.initialize());
 
 // parse body of request
 app.use(bodyParser.json());
@@ -88,17 +107,17 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', defaultController);
 
 // sets application API's routes
-app.use('/api/v1', authRoute); // auth routes
-app.use('/api/v1', userRoute); // user routes
-app.use('/api/v1', appsRoute); // apps routes
-app.use('/api/v1', roomRoute); // room routes
-app.use('/api/v1', bookingRoute); // booking routes
-app.use('/api/v1', reviewRoute); // review routes
+app.use('/api/v1', authRoute);
+app.use('/api/v1', userRoute);
+app.use('/api/v1', appsRoute);
+app.use('/api/v1', roomRoute);
+app.use('/api/v1', bookingRoute);
+app.use('/api/v1', reviewRoute);
 
 // 404 ~ not found error handler
 app.use(notFoundRoute);
 
-// 500 ~ internal server error handler
+// 500 ~ internal error handler
 app.use(errorHandler);
 
 // default export ~ app

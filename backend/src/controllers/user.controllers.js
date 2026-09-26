@@ -14,6 +14,14 @@ const User = require('../models/user.model');
 const logger = require('../middleware/winston.logger');
 const MyQueryHelper = require('../configs/api.feature');
 
+// Helper to return external avatar URLs unchanged
+// and prefix local avatar paths with APP_BASE_URL.
+const getAvatarUrl = (avatar) => (
+  avatar?.startsWith('http')
+    ? avatar
+    : process.env.APP_BASE_URL + avatar
+);
+
 // TODO: Controller for get user info
 exports.getUser = async (req, res) => {
   try {
@@ -36,7 +44,7 @@ exports.getUser = async (req, res) => {
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
-        avatar: process.env.APP_BASE_URL + user.avatar,
+        avatar: getAvatarUrl(user.avatar),
         gender: user.gender,
         dob: user.dob,
         address: user.address,
@@ -80,7 +88,7 @@ exports.getUserById = async (req, res) => {
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
-        avatar: process.env.APP_BASE_URL + user.avatar,
+        avatar: getAvatarUrl(user.avatar),
         gender: user.gender,
         dob: user.dob,
         address: user.address,
@@ -135,7 +143,7 @@ exports.updateUser = async (req, res) => {
           fullName: updatedUser.fullName,
           email: updatedUser.email,
           phone: updatedUser.phone,
-          avatar: process.env.APP_BASE_URL + updatedUser.avatar,
+          avatar: getAvatarUrl(updatedUser.avatar),
           gender: updatedUser.gender,
           dob: updatedUser.dob,
           address: updatedUser.address,
@@ -155,6 +163,7 @@ exports.updateUser = async (req, res) => {
           'User `fullName` field is required'
         ));
       }
+
       // check if phone is empty
       if (!phone) {
         return res.status(400).json(errorResponse(
@@ -163,6 +172,7 @@ exports.updateUser = async (req, res) => {
           'User `phone` field is required'
         ));
       }
+
       // check if gender is empty
       if (!gender) {
         return res.status(400).json(errorResponse(
@@ -171,6 +181,7 @@ exports.updateUser = async (req, res) => {
           'User `gender` field is required'
         ));
       }
+
       // check if address is empty
       if (!address) {
         return res.status(400).json(errorResponse(
@@ -206,7 +217,9 @@ exports.avatarUpdate = async (req, res) => {
       // if find to delete user old avatar
       if (user?.avatar?.includes('/uploads/users')) {
         fs.unlink(`${appRoot}/public/${user.avatar}`, (err) => {
-          if (err) { logger.error(err); }
+          if (err) {
+            logger.error(err);
+          }
         });
       }
 
@@ -226,7 +239,7 @@ exports.avatarUpdate = async (req, res) => {
           fullName: updatedUser.fullName,
           email: updatedUser.email,
           phone: updatedUser.phone,
-          avatar: process.env.APP_BASE_URL + updatedUser.avatar,
+          avatar: getAvatarUrl(updatedUser.avatar),
           gender: updatedUser.gender,
           dob: updatedUser.dob,
           address: updatedUser.address,
@@ -247,9 +260,14 @@ exports.avatarUpdate = async (req, res) => {
   } catch (error) {
     // if any error delete uploaded avatar image
     if (req?.file?.filename) {
-      fs.unlink(`${appRoot}/public/uploads/users/${req.file.filename}`, (err) => {
-        if (err) { logger.error(err); }
-      });
+      fs.unlink(
+        `${appRoot}/public/uploads/users/${req.file.filename}`,
+        (err) => {
+          if (err) {
+            logger.error(err);
+          }
+        }
+      );
     }
 
     res.status(500).json(errorResponse(
@@ -317,7 +335,7 @@ exports.deleteUserById = async (req, res) => {
       ));
     }
 
-    if (req?.user?.id?.toString() === req.params.id) {
+    if (req?.user?._id?.toString() === req.params.id) {
       return res.status(400).json(errorResponse(
         1,
         'FAILED',
@@ -380,7 +398,11 @@ exports.getUsersList = async (req, res) => {
     }
 
     // filtering users based on different types query
-    const userQuery = new MyQueryHelper(User.find(), req.query).search('fullName').sort().paginate();
+    const userQuery = new MyQueryHelper(User.find(), req.query)
+      .search('fullName')
+      .sort()
+      .paginate();
+
     const findUsers = await userQuery.query;
 
     const mappedUsers = findUsers?.map((data) => ({
@@ -389,7 +411,7 @@ exports.getUsersList = async (req, res) => {
       fullName: data.fullName,
       email: data.email,
       phone: data.phone,
-      avatar: process.env.APP_BASE_URL + data.avatar,
+      avatar: getAvatarUrl(data.avatar),
       gender: data.gender,
       dob: data.dob,
       address: data.address,
@@ -408,8 +430,12 @@ exports.getUsersList = async (req, res) => {
         rows: mappedUsers,
         total_rows: users.length,
         response_rows: findUsers.length,
-        total_page: req?.query?.keyword ? Math.ceil(findUsers.length / req.query.limit) : Math.ceil(users.length / req.query.limit),
-        current_page: req?.query?.page ? parseInt(req.query.page, 10) : 1
+        total_page: req?.query?.keyword
+          ? Math.ceil(findUsers.length / req.query.limit)
+          : Math.ceil(users.length / req.query.limit),
+        current_page: req?.query?.page
+          ? parseInt(req.query.page, 10)
+          : 1
       }
     ));
   } catch (error) {
@@ -467,7 +493,7 @@ exports.blockedUser = async (req, res) => {
         fullName: blockedUser.fullName,
         email: blockedUser.email,
         phone: blockedUser.phone,
-        avatar: process.env.APP_BASE_URL + blockedUser.avatar,
+        avatar: getAvatarUrl(blockedUser.avatar),
         gender: blockedUser.gender,
         dob: blockedUser.dob,
         address: blockedUser.address,
@@ -533,7 +559,7 @@ exports.unblockedUser = async (req, res) => {
         fullName: unblockedUser.fullName,
         email: unblockedUser.email,
         phone: unblockedUser.phone,
-        avatar: process.env.APP_BASE_URL + unblockedUser.avatar,
+        avatar: getAvatarUrl(unblockedUser.avatar),
         gender: unblockedUser.gender,
         dob: unblockedUser.dob,
         address: unblockedUser.address,

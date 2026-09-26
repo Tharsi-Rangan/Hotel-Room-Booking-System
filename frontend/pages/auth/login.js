@@ -7,9 +7,17 @@
  *
  */
 
-import { LockOutlined, MailOutlined } from '@ant-design/icons';
 import {
-  Button, Checkbox, Form, Input
+  LockOutlined,
+  MailOutlined,
+  GoogleOutlined
+} from '@ant-design/icons';
+import {
+  Button,
+  Checkbox,
+  Form,
+  Input,
+  Divider
 } from 'antd';
 import Link from 'next/link';
 import React, { useState } from 'react';
@@ -24,27 +32,56 @@ function Login() {
   const [form] = Form.useForm();
 
   const onFinish = (values) => {
+    setLoading(true);
+
     ApiService.post('/api/v1/auth/login', values)
       .then((response) => {
         setLoading(false);
+
         if (response?.result_code === 0) {
-          setSessionUserAndToken(response?.result?.data, response?.access_token, response?.refresh_token);
+          setSessionUserAndToken(
+            response?.result?.data,
+            response?.access_token,
+            response?.refresh_token
+          );
+
           form.resetFields();
           window.location.href = '/profile?tab=my-profile';
         } else {
-          notificationWithIcon('error', 'ERROR', 'Sorry! Something went wrong. App server error');
+          notificationWithIcon(
+            'error',
+            'ERROR',
+            'Sorry! Something went wrong. App server error'
+          );
         }
       })
       .catch((err) => {
         setLoading(false);
-        notificationWithIcon('error', 'ERROR', err?.response?.data?.result?.error?.message || err?.response?.data?.result?.error || 'Sorry! Something went wrong. App server error');
+
+        notificationWithIcon(
+          'error',
+          'ERROR',
+          err?.response?.data?.result?.error?.message ||
+          err?.response?.data?.result?.error ||
+          'Sorry! Something went wrong. App server error'
+        );
       });
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = 'http://localhost:5000/api/v1/auth/google';
   };
 
   return (
     <PublicRoute>
       <MainLayout title='Beach Resort ― Login'>
-        <div style={{ width: '400px', height: 'calc(100vh - 205px)', margin: '0 auto' }}>
+        <div
+          style={{
+            width: '400px',
+            height: 'calc(100vh - 205px)',
+            margin: '0 auto'
+          }}
+        >
           <Form
             form={form}
             className='login-form'
@@ -110,6 +147,20 @@ function Login() {
                 disabled={loading}
               >
                 Log In
+              </Button>
+            </Form.Item>
+
+            <Divider plain>OR</Divider>
+
+            <Form.Item>
+              <Button
+                type='default'
+                size='large'
+                block
+                icon={<GoogleOutlined />}
+                onClick={handleGoogleLogin}
+              >
+                Sign in with Google
               </Button>
             </Form.Item>
 

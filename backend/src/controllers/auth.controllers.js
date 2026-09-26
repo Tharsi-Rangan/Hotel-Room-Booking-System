@@ -16,6 +16,9 @@ const { errorResponse, successResponse } = require('../configs/app.response');
 const loginResponse = require('../configs/login.response');
 const sendEmail = require('../configs/send.mail');
 
+// Temporary OAuth exchange codes
+const oauthExchangeCodes = new Map();
+
 // TODO: Controller for registration new user
 exports.register = async (req, res) => {
   try {
@@ -187,6 +190,7 @@ exports.loginUser = async (req, res) => {
 
     // check password matched
     const isPasswordMatch = await user.comparePassword(password);
+
     if (!isPasswordMatch) {
       return res.status(400).json(errorResponse(
         1,
@@ -209,6 +213,140 @@ exports.loginUser = async (req, res) => {
       1,
       'FAILED',
       error
+    ));
+  }
+};
+
+// Google OAuth callback
+exports.googleCallback = async (req, res) => {
+  try {
+    const googleUser = req.user;
+
+    if (!googleUser) {
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/login?oauth_error=google_auth_failed`
+      );
+    }
+
+    const code = crypto.randomBytes(32).toString('hex');
+
+    oauthExchangeCodes.set(code, {
+      googleUser,
+      expiresAt: Date.now() + 60 * 1000
+    });
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/auth/google-success?code=${code}`
+    );
+  } catch (error) {
+    logger.error(error);
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/auth/login?oauth_error=google_auth_failed`
+    );
+  }
+};
+
+// Exchange one-time OAuth code for application JWT tokens
+exports.googleExchange = async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json(errorResponse(
+        1,
+        'FAILED',
+        'OAuth exchange code is required'
+      ));
+    }
+
+    const exchangeData = oauthExchangeCodes.get(code);
+
+    if (!exchangeData || exchangeData.expiresAt < Date.now()) {
+      oauthExchangeCodes.delete(code);
+
+      return res.status(400).json(errorResponse(
+        1,
+        'FAILED',
+        'OAuth exchange code is invalid or expired'
+      ));
+    }
+
+    // One-time use
+    oauthExchangeCodes.delete(code);
+
+    const { googleUser } = exchangeData;
+
+    // Find existing Google account
+    let user = await User.findOne({
+      googleId: googleUser.googleId
+    });
+
+    // If Google ID is not linked yet, check whether the email
+    // already belongs to an existing account.
+    if (!user) {
+      user = await User.findOne({
+        email: googleUser.email
+      });
+    }
+
+    // Do not allow blocked users to sign in
+    if (user && user.status === 'blocked') {
+      return res.status(406).json(errorResponse(
+        6,
+        'UNABLE TO ACCESS',
+        'Accessing the page or resource you were trying to reach is forbidden'
+      ));
+    }
+
+    // Create a new Google user
+    if (!user) {
+      const baseUserName = googleUser.email
+        .split('@')[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-');
+
+      let userName = baseUserName;
+      let counter = 1;
+
+      while (await User.findOne({ userName })) {
+        userName = `${baseUserName}-${counter}`;
+        counter += 1;
+      }
+
+      user = await User.create({
+        userName,
+        fullName: googleUser.fullName,
+        email: googleUser.email,
+        googleId: googleUser.googleId,
+        avatar: googleUser.avatar || '/avatar.png',
+        role: 'user',
+        verified: true,
+        status: 'login'
+      });
+    } else {
+      // Link Google account to an existing account
+      user.googleId = googleUser.googleId;
+      user.verified = true;
+      user.status = 'login';
+      user.updatedAt = Date.now();
+
+      if (googleUser.avatar) {
+        user.avatar = googleUser.avatar;
+      }
+
+      await user.save();
+    }
+
+    // Use the existing JWT authentication response
+    return loginResponse(res, user);
+  } catch (error) {
+    logger.error(error);
+
+    return res.status(500).json(errorResponse(
+      1,
+      'FAILED',
+      'Unable to complete Google login'
     ));
   }
 };
@@ -364,6 +502,7 @@ exports.changePassword = async (req, res) => {
 
       // check old password matched
       const isPasswordMatch = await user2.comparePassword(req.body.oldPassword.toString());
+
       if (!isPasswordMatch) {
         return res.status(400).json(errorResponse(
           1,

@@ -20,9 +20,15 @@ const loginResponse = (res, user, maintenance) => {
   const accessToken = user.getJWTToken();
   const refreshToken = user.getJWTRefreshToken();
 
+  const avatar = user.avatar?.startsWith('http')
+    ? user.avatar
+    : process.env.APP_BASE_URL + user.avatar;
+
   // options for cookie
   const options = {
-    expires: new Date(Date.now() + process.env.JWT_TOKEN_COOKIE_EXPIRES * 24 * 60 * 60 * 1000),
+    expires: new Date(
+      Date.now() + process.env.JWT_TOKEN_COOKIE_EXPIRES * 24 * 60 * 60 * 1000
+    ),
     httpOnly: true
   };
 
@@ -35,8 +41,12 @@ const loginResponse = (res, user, maintenance) => {
       maintenance_info: maintenance || null,
       access_token: accessToken,
       refresh_token: refreshToken,
-      access_token_expires: getDateAfterDuration(process.env.JWT_ACCESS_TOKEN_EXPIRES),
-      refresh_token_expires: getDateAfterDuration(process.env.JWT_REFRESH_TOKEN_EXPIRES),
+      access_token_expires: getDateAfterDuration(
+        process.env.JWT_ACCESS_TOKEN_EXPIRES
+      ),
+      refresh_token_expires: getDateAfterDuration(
+        process.env.JWT_REFRESH_TOKEN_EXPIRES
+      ),
       result: {
         title: 'SUCCESS',
         message: 'User login successful',
@@ -46,7 +56,7 @@ const loginResponse = (res, user, maintenance) => {
           fullName: user.fullName,
           email: user.email,
           phone: user.phone,
-          avatar: process.env.APP_BASE_URL + user.avatar,
+          avatar,
           gender: user.gender,
           dob: user.dob,
           address: user.address,

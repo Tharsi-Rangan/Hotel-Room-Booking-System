@@ -15,7 +15,7 @@
     "antd-img-crop": "^4.12.2",
     "axios": "^1.2.1",
     "dayjs": "^1.11.7",
-    "next": "13.0.6",
+    "next": "15.5.26",
     "next-connect": "^0.13.0",
     "next-seo": "^5.15.0",
     "prop-types": "^15.8.1",
@@ -42,5 +42,8 @@
     "eslint-plugin-react": "^7.31.11",
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^2.8.1"
+  },
+  "overrides": {
+    "postcss": "^8.5.23"
   }
 }

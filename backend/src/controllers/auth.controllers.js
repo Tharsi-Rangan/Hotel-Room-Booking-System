@@ -23,7 +23,7 @@ const oauthExchangeCodes = new Map();
 exports.register = async (req, res) => {
   try {
     const {
-      userName, fullName, email, phone, password, dob, address, gender, role
+      userName, fullName, email, phone, password, dob, address, gender
     } = req.body;
 
     if (userName && fullName && email && password && dob && address) {
@@ -78,6 +78,9 @@ exports.register = async (req, res) => {
       }
 
       // create new user and store in database
+            // create new user and store in database
+      // SECURITY (OWASP A01 / CWE-915): role is never taken from the request body.
+      // Public registration always creates a normal user; admins are created by an admin.
       const user = await User.create({
         userName,
         fullName,
@@ -88,7 +91,7 @@ exports.register = async (req, res) => {
         gender,
         dob,
         address,
-        role
+        role: 'user'
       });
 
       // success response with register new user
@@ -458,10 +461,12 @@ exports.resetPassword = async (req, res) => {
         ));
       }
 
-      // reset user password in database
+      // reset user password in database and invalidate existing sessions
+      // SECURITY (OWASP A07): same pattern as changePassword - old JWTs stop working
       user.password = req.body.password;
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
+      user.tokenVersion += 1;
       await user.save();
 
       res.status(200).json(successResponse(

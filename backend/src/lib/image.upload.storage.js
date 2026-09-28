@@ -32,7 +32,7 @@ const imageDiskStorage = (folder) => ({
       const fileExt = detectImageExtension(buffer);
 
       if (!fileExt) {
-        return cb(new Error('Only .jpg, .png or .jpeg format allowed!'));
+        return cb(Object.assign(new Error('Only .jpg, .png or .jpeg format allowed!'), { status: 400, expose: true }));
       }
 
       // the server names the file, so the client cannot choose its name or extension

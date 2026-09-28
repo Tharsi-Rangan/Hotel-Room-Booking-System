@@ -461,10 +461,12 @@ exports.resetPassword = async (req, res) => {
         ));
       }
 
-      // reset user password in database
+      // reset user password in database and invalidate existing sessions
+      // SECURITY (OWASP A07): same pattern as changePassword - old JWTs stop working
       user.password = req.body.password;
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
+      user.tokenVersion += 1;
       await user.save();
 
       res.status(200).json(successResponse(

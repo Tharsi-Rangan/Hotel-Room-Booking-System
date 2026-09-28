@@ -9,6 +9,7 @@
 
 const sgMail = require('@sendgrid/mail');
 const { successResponse, errorResponse } = require('./app.response');
+const logger = require('../middleware/winston.logger');
 
 const sendEmail = async (res, user, url, subjects, message, title) => {
   sgMail.setApiKey(process.env.SEND_GRID_API_KEY);
@@ -28,9 +29,16 @@ const sendEmail = async (res, user, url, subjects, message, title) => {
     res.status(200).json(successResponse(
       0,
       'SUCCESS',
-      `Email sent to ${user.email} successful`
+      'Email sent successfully. Please check your inbox.'
     ));
   }).catch(async (error) => {
+    // SECURITY (OWASP A10 / CWE-209): log the real provider error on the server only.
+    // Response headers are not logged; user is identified by id, not email (PII).
+    const upstream = error.response && error.response.body
+      ? ` | upstream response: ${JSON.stringify(error.response.body)}`
+      : '';
+    logger.error(`[SendGrid] email send failed for user ${user._id}: ${error.message}${upstream}`);
+
     // eslint-disable-next-line no-param-reassign
     user.resetPasswordToken = undefined;
     // eslint-disable-next-line no-param-reassign
@@ -41,7 +49,7 @@ const sendEmail = async (res, user, url, subjects, message, title) => {
     res.status(500).json(errorResponse(
       2,
       'SERVER SIDE ERROR',
-      error
+      'Unable to send email right now. Please try again later.'
     ));
   });
 };

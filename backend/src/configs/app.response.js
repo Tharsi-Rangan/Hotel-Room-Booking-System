@@ -6,8 +6,30 @@
  * @version v0.0.1
  *
  */
-
 const currentDateTime = require('../lib/current.date.time');
+const logger = require('../middleware/winston.logger');
+
+// What the client sees whenever the real error is not a developer-written string
+const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again later.';
+
+/**
+ * Turn any error value into one line for the server log.
+ * Keeps the stack trace and, for HTTP client libraries such as SendGrid,
+ * the upstream response body (headers are NOT logged).
+ */
+const describeError = (error) => {
+  if (error instanceof Error) {
+    const upstream = error.response && error.response.body
+      ? ` | upstream response: ${JSON.stringify(error.response.body)}`
+      : '';
+    return `${error.stack || error.message}${upstream}`;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch (e) {
+    return String(error);
+  }
+};
 
 /**
  * function to all API same formatted success response provider
@@ -29,17 +51,29 @@ exports.successResponse = (resultCode, title, message, data, maintenance) => ({
 
 /**
  * function to all API same formatted error response provider
+ * SECURITY (OWASP A10 / CWE-209): only developer-written string messages are sent
+ * to the client. Error objects and library errors (Mongoose, SendGrid, ...) are
+ * logged in full on the server and replaced with a generic message.
  * @param {Number} resultCode API response defined custom result_code
  * @param {String} title API response title based on result_code
- * @param {*} error Send any kind or error in API response
+ * @param {*} error Developer-written message (string) or an error object
  * @param {*} maintenance API provide any kind of maintenance information
  * @returns error response return for all API's
  */
-exports.errorResponse = (resultCode, title, error, maintenance) => ({
-  result_code: resultCode,
-  time: currentDateTime(),
-  maintenance_info: maintenance || null,
-  result: {
-    title, error
+exports.errorResponse = (resultCode, title, error, maintenance) => {
+  let clientError = error;
+
+  if (typeof error !== 'string') {
+    logger.error(`[${title}] ${describeError(error)}`);
+    clientError = GENERIC_ERROR_MESSAGE;
   }
-});
+
+  return {
+    result_code: resultCode,
+    time: currentDateTime(),
+    maintenance_info: maintenance || null,
+    result: {
+      title, error: clientError
+    }
+  };
+};

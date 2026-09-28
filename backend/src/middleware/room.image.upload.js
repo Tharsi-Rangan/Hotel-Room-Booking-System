@@ -24,7 +24,7 @@ const roomImageUpload = multer({
       if (isAllowedImage(files)) {
         cb(null, true);
       } else {
-        cb(new Error('Only .jpg, .png or .jpeg format allowed!'));
+        cb(Object.assign(new Error('Only .jpg, .png or .jpeg format allowed!'), { status: 400, expose: true }));
       }
     } else {
       cb(new Error('There was an unknown error!'));
